@@ -1,4 +1,4 @@
-# WaniKani Dashboard
+# WaniKani Export Filter
 
 A local React app for browsing and exporting WaniKani data with SQLite caching.
 
