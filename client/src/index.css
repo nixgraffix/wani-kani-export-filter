@@ -1,0 +1,445 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #1a1a2e;
+  color: #eee;
+  min-height: 100vh;
+}
+
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+h1 {
+  color: #00aaff;
+}
+
+button {
+  background: #00aaff;
+  color: #fff;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+button:hover {
+  background: #0088cc;
+}
+
+.card {
+  background: #16213e;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.card h2 {
+  color: #00aaff;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid #333;
+  padding-bottom: 0.5rem;
+}
+
+.review-count {
+  font-size: 4rem;
+  font-weight: bold;
+  color: #ff6b6b;
+}
+
+.review-breakdown {
+  margin-top: 1rem;
+}
+
+.review-breakdown h3 {
+  font-size: 0.9rem;
+  color: #888;
+  margin-bottom: 0.5rem;
+}
+
+.review-breakdown ul {
+  list-style: none;
+}
+
+.review-breakdown li {
+  padding: 0.25rem 0;
+  text-transform: capitalize;
+}
+
+.source {
+  font-size: 0.75rem;
+  color: #666;
+  margin-top: 1rem;
+}
+
+.error {
+  color: #ff6b6b;
+  background: rgba(255, 107, 107, 0.1);
+  padding: 1rem;
+  border-radius: 4px;
+  margin: 1rem 0;
+}
+
+/* Range Slider */
+.range-slider {
+  padding: 1rem 0;
+}
+
+.range-values {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  font-size: 1.1rem;
+}
+
+.range-values span:first-child,
+.range-values span:last-child {
+  background: #0f3460;
+  padding: 0.25rem 0.75rem;
+  border-radius: 4px;
+  font-weight: bold;
+}
+
+.slider-container {
+  position: relative;
+  height: 8px;
+}
+
+.slider-track {
+  position: absolute;
+  width: 100%;
+  height: 8px;
+  background: #333;
+  border-radius: 4px;
+  z-index: 1;
+}
+
+.slider-range {
+  position: absolute;
+  height: 8px;
+  background: #00aaff;
+  border-radius: 4px;
+  z-index: 2;
+}
+
+.thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  position: absolute;
+  width: 100%;
+  height: 8px;
+  background: transparent;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.thumb::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  background: #00aaff;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  cursor: pointer;
+  pointer-events: all;
+  margin-top: -6px;
+}
+
+.thumb::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  background: #00aaff;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  cursor: pointer;
+  pointer-events: all;
+}
+
+/* Subjects Grid */
+.subjects-results {
+  margin-top: 1.5rem;
+}
+
+.subjects-count {
+  font-size: 1.2rem;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+}
+
+.subjects-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 0.75rem;
+  margin-top: 1rem;
+  max-height: 800px;
+  overflow-y: auto;
+}
+
+.subject-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.75rem;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.subject-card.radical {
+  background: #0093dd;
+}
+
+.subject-card.kanji {
+  background: #dd0093;
+}
+
+.subject-card.vocabulary {
+  background: #9300dd;
+}
+
+.subject-char {
+  font-size: 2rem;
+  font-weight: bold;
+}
+
+.subject-meaning {
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+  opacity: 0.9;
+}
+
+.subject-type {
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  opacity: 0.7;
+  margin-top: 0.25rem;
+}
+
+button:disabled {
+  background: #555;
+  cursor: not-allowed;
+}
+
+/* Type Filters */
+.type-filters {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-top: 1rem;
+}
+
+.type-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  text-transform: capitalize;
+  font-size: 0.9rem;
+}
+
+.type-checkbox input {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+.type-checkbox.radical {
+  background: rgba(0, 147, 221, 0.3);
+  border: 2px solid #0093dd;
+}
+
+.type-checkbox.kanji {
+  background: rgba(221, 0, 147, 0.3);
+  border: 2px solid #dd0093;
+}
+
+.type-checkbox.vocabulary {
+  background: rgba(147, 0, 221, 0.3);
+  border: 2px solid #9300dd;
+}
+
+.type-checkbox.kana_vocabulary {
+  background: rgba(147, 0, 221, 0.3);
+  border: 2px solid #9300dd;
+}
+
+/* SRS Stage Indicators */
+.subject-srs {
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  padding: 0.15rem 0.4rem;
+  border-radius: 3px;
+  margin-top: 0.25rem;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.subject-card.srs-locked {
+  opacity: 0.5;
+}
+
+.subject-card.srs-locked .subject-srs {
+  background: #444;
+}
+
+.subject-card.srs-lesson .subject-srs {
+  background: #555;
+}
+
+.subject-card.srs-apprentice .subject-srs {
+  background: #dd0093;
+}
+
+.subject-card.srs-guru .subject-srs {
+  background: #882d9e;
+}
+
+.subject-card.srs-master .subject-srs {
+  background: #294ddb;
+}
+
+.subject-card.srs-enlightened .subject-srs {
+  background: #0093dd;
+}
+
+.subject-card.srs-burned .subject-srs {
+  background: #434343;
+}
+
+.subject-card.srs-burned {
+  opacity: 0.7;
+}
+
+.subject-level {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  font-size: 0.6rem;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 0.1rem 0.3rem;
+  border-radius: 3px;
+}
+
+.subject-card {
+  position: relative;
+}
+
+/* Details Actions */
+.details-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 1rem 0;
+  flex-wrap: wrap;
+}
+
+.details-actions button.secondary {
+  background: #555;
+}
+
+.details-actions button.secondary:hover {
+  background: #666;
+}
+
+.details-status {
+  font-size: 0.85rem;
+  color: #88cc88;
+}
+
+.details-error {
+  font-size: 0.85rem;
+  color: #ff6b6b;
+}
+
+.details-cached-note {
+  font-size: 0.85rem;
+  color: #888;
+}
+
+/* Export Filters */
+.export-filters {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  padding: 1rem;
+  margin: 1rem 0;
+}
+
+.export-filters h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1rem;
+  color: #00aaff;
+}
+
+.filter-group {
+  margin-bottom: 1rem;
+}
+
+.filter-group h4 {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.85rem;
+  color: #888;
+}
+
+.filter-checkboxes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.filter-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.6rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.filter-checkbox input {
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+}
+
+.filter-checkbox.srs-locked { border-color: #444; }
+.filter-checkbox.srs-lesson { border-color: #555; }
+.filter-checkbox.srs-apprentice { border-color: #dd0093; }
+.filter-checkbox.srs-guru { border-color: #882d9e; }
+.filter-checkbox.srs-master { border-color: #294ddb; }
+.filter-checkbox.srs-enlightened { border-color: #0093dd; }
+.filter-checkbox.srs-burned { border-color: #434343; }
+
+.filter-checkbox.pos {
+  border-color: #9300dd;
+}
+
+.filter-checkbox.pos.empty {
+  border-color: #666;
+  font-style: italic;
+}
+
+.filter-count {
+  font-size: 0.85rem;
+  color: #888;
+  margin-top: 0.5rem;
+}
