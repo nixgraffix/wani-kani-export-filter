@@ -6,12 +6,16 @@ A local React app for browsing and exporting WaniKani data with SQLite caching.
 
 - Node.js (v18 or higher)
 - WaniKani API token (get it from https://www.wanikani.com/settings/personal_access_tokens)
+- **Linux/WSL users**: Build tools for native modules
+  ```bash
+  sudo apt update && sudo apt install -y build-essential
+  ```
 
 ## Setup
 
-1. Install dependencies:
+1. Install dependencies for all packages (root, server, and client):
    ```bash
-   npm install
+   npm run install:all
    ```
 
 2. Create the server environment file:
