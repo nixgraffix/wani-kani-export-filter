@@ -1,21 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import LevelRangeSlider from './components/LevelRangeSlider';
-
-const SRS_STAGES = {
-  0: { label: 'Lesson', class: 'srs-lesson' },
-  1: { label: 'Apprentice', class: 'srs-apprentice' },
-  2: { label: 'Apprentice', class: 'srs-apprentice' },
-  3: { label: 'Apprentice', class: 'srs-apprentice' },
-  4: { label: 'Apprentice', class: 'srs-apprentice' },
-  5: { label: 'Guru', class: 'srs-guru' },
-  6: { label: 'Guru', class: 'srs-guru' },
-  7: { label: 'Master', class: 'srs-master' },
-  8: { label: 'Enlightened', class: 'srs-enlightened' },
-  9: { label: 'Burned', class: 'srs-burned' }
-};
-
-const getSrsLabel = (stage) => SRS_STAGES[stage]?.label ?? 'Locked';
-const getSrsClass = (stage) => SRS_STAGES[stage]?.class ?? 'srs-locked';
+import { UI_STRINGS, CSV_HEADERS, FILE_NAMES, getSrsLabel, getSrsClass, setLanguage, getCurrentLanguage } from './strings';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -28,6 +13,7 @@ function App() {
   const [detailsStatus, setDetailsStatus] = useState(null);
   const [detailsProgress, setDetailsProgress] = useState(null);
   const [subjectDetails, setSubjectDetails] = useState(null);
+  const [language, setLanguageState] = useState(getCurrentLanguage());
 
   // Helper to parse URL params and initialize state
   const getInitialStateFromURL = () => {
@@ -141,6 +127,12 @@ function App() {
 
   const handlePosFilterToggle = (pos) => {
     setPosFilter(prev => ({ ...prev, [pos]: !prev[pos] }));
+  };
+
+  const handleLanguageToggle = () => {
+    const newLang = language === 'en' ? 'ja' : 'en';
+    setLanguage(newLang);
+    setLanguageState(newLang);
   };
 
   // Map srs_stage to filter key
@@ -349,15 +341,15 @@ function App() {
   }, [detailsStatus, subjects, detailsLoading]);
 
   if (loading) {
-    return <div className="container"><p>Loading...</p></div>;
+    return <div className="container"><p>{UI_STRINGS.LOADING}</p></div>;
   }
 
   if (error) {
     return (
       <div className="container">
-        <h1>Error</h1>
+        <h1>{UI_STRINGS.ERROR_TITLE}</h1>
         <p className="error">{error}</p>
-        <p>Make sure you have set your WANIKANI_API_TOKEN in server/.env</p>
+        <p>{UI_STRINGS.ERROR_ENV_TOKEN}</p>
       </div>
     );
   }
@@ -365,27 +357,32 @@ function App() {
   return (
     <div className="container">
       <header>
-        <h1>WaniKani Dashboard</h1>
-        <button onClick={handleSync}>Refresh Data</button>
+        <h1>{UI_STRINGS.PAGE_TITLE}</h1>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <button onClick={handleLanguageToggle}>
+            {UI_STRINGS.LANGUAGE_BUTTON}
+          </button>
+          <button onClick={handleSync}>{UI_STRINGS.REFRESH_DATA_BUTTON}</button>
+        </div>
       </header>
 
       {user && (
         <section className="card">
-          <h2>User Info</h2>
-          <p><strong>Username:</strong> {user.data.username}</p>
-          <p><strong>Level:</strong> {user.data.level} / {user.data.max_level}</p>
-          <p className="source">Source: {user.source}</p>
+          <h2>{UI_STRINGS.USER_INFO_TITLE}</h2>
+          <p><strong>{UI_STRINGS.USER_USERNAME}</strong> {user.data.username}</p>
+          <p><strong>{UI_STRINGS.USER_LEVEL}</strong> {user.data.level} / {user.data.max_level}</p>
+          <p className="source">{UI_STRINGS.SOURCE} {user.source === 'cache' ? UI_STRINGS.SOURCE_CACHE : UI_STRINGS.SOURCE_API}</p>
         </section>
       )}
 
       {reviews && (
         <section className="card">
-          <h2>Reviews Available</h2>
+          <h2>{UI_STRINGS.REVIEWS_AVAILABLE_TITLE}</h2>
           <p className="review-count">{reviews.count}</p>
-          <p>items ready for review</p>
+          <p>{UI_STRINGS.REVIEWS_ITEMS_READY}</p>
           {reviews.count > 0 && (
             <div className="review-breakdown">
-              <h3>By Type</h3>
+              <h3>{UI_STRINGS.REVIEWS_BY_TYPE}</h3>
               <ul>
                 {Object.entries(
                   reviews.data.reduce((acc, r) => {
@@ -398,12 +395,12 @@ function App() {
               </ul>
             </div>
           )}
-          <p className="source">Source: {reviews.source}</p>
+          <p className="source">{UI_STRINGS.SOURCE} {reviews.source === 'cache' ? UI_STRINGS.SOURCE_CACHE : UI_STRINGS.SOURCE_API}</p>
         </section>
       )}
 
       <section className="card">
-        <h2>Browse Subjects by Level</h2>
+        <h2>{UI_STRINGS.BROWSE_SUBJECTS_TITLE}</h2>
         {user && (
           <LevelRangeSlider
             min={1}
@@ -431,13 +428,13 @@ function App() {
           disabled={subjectsLoading}
           style={{ marginTop: '1rem' }}
         >
-          {subjectsLoading ? 'Loading...' : 'Load Subjects'}
+          {subjectsLoading ? UI_STRINGS.LOADING : UI_STRINGS.LOAD_SUBJECTS_BUTTON}
         </button>
 
         {subjects && (
           <div className="subjects-results">
             <p className="subjects-count">{subjects.count} subjects found</p>
-            <p className="source">Source: {subjects.source}</p>
+            <p className="source">{UI_STRINGS.SOURCE} {subjects.source === 'cache' ? UI_STRINGS.SOURCE_CACHE : UI_STRINGS.SOURCE_API}</p>
 
             <div className="details-actions">
               <button
@@ -446,21 +443,21 @@ function App() {
               >
                 {detailsLoading && detailsProgress
                   ? detailsProgress.total > 0
-                    ? `Fetching... (${detailsProgress.current}/${detailsProgress.total})`
-                    : 'Checking cache...'
+                    ? `${UI_STRINGS.DETAILS_FETCHING} (${detailsProgress.current}/${detailsProgress.total})`
+                    : UI_STRINGS.DETAILS_CHECKING_CACHE
                   : detailsLoading
-                    ? 'Fetching...'
-                    : 'Fetch Details'}
+                    ? UI_STRINGS.DETAILS_FETCHING
+                    : UI_STRINGS.FETCH_DETAILS_BUTTON}
               </button>
               {detailsLoading && detailsProgress && detailsProgress.cached > 0 && (
-                <span className="details-cached-note">({detailsProgress.cached} already cached)</span>
+                <span className="details-cached-note">({detailsProgress.cached} {UI_STRINGS.DETAILS_ALREADY_CACHED})</span>
               )}
               <button
                 onClick={() => fetchDetails(true)}
                 disabled={detailsLoading || subjects.count === 0}
                 className="secondary"
               >
-                Force Refresh Details
+                {UI_STRINGS.FORCE_REFRESH_DETAILS_BUTTON}
               </button>
               {detailsStatus && !detailsStatus.error && (
                 <span className="details-status">
@@ -473,10 +470,10 @@ function App() {
             </div>
 
             <div className="export-filters">
-              <h3>Export Filters</h3>
+              <h3>{UI_STRINGS.EXPORT_FILTERS_TITLE}</h3>
               <div className="filter-group">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                  <h4 style={{ margin: 0 }}>SRS Level</h4>
+                  <h4 style={{ margin: 0 }}>{UI_STRINGS.SRS_LEVEL_TITLE}</h4>
                   <button
                     onClick={(e) => {
                       e.preventDefault();
@@ -506,7 +503,7 @@ function App() {
                     type="button"
                     style={{ fontSize: '0.85rem', padding: '0.25rem 0.5rem' }}
                   >
-                    {Object.values(srsFilter).every(v => v) ? 'Deselect All' : 'Select All'}
+                    {Object.values(srsFilter).every(v => v) ? UI_STRINGS.DESELECT_ALL_BUTTON : UI_STRINGS.SELECT_ALL_BUTTON}
                   </button>
                 </div>
                 <div className="filter-checkboxes">
@@ -526,7 +523,7 @@ function App() {
               {Object.keys(posFilter).length > 0 && (
                 <div className="filter-group">
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                    <h4 style={{ margin: 0 }}>Parts of Speech</h4>
+                    <h4 style={{ margin: 0 }}>{UI_STRINGS.PARTS_OF_SPEECH_TITLE}</h4>
                     <button
                       onClick={(e) => {
                         e.preventDefault();
@@ -540,7 +537,7 @@ function App() {
                       type="button"
                       style={{ fontSize: '0.85rem', padding: '0.25rem 0.5rem' }}
                     >
-                      {Object.values(posFilter).every(v => v) ? 'Deselect All' : 'Select All'}
+                      {Object.values(posFilter).every(v => v) ? UI_STRINGS.DESELECT_ALL_BUTTON : UI_STRINGS.SELECT_ALL_BUTTON}
                     </button>
                   </div>
                   <div className="filter-checkboxes">
@@ -566,7 +563,7 @@ function App() {
               )}
 
               <p className="filter-count">
-                Showing {[...subjects.data].filter(subject => {
+                {UI_STRINGS.FILTER_COUNT_SHOWING} {[...subjects.data].filter(subject => {
                   // Filter by subject type
                   if (!subjectTypes[subject.type]) return false;
 
@@ -588,7 +585,7 @@ function App() {
                     }
                   }
                   return true;
-                }).length} of {subjects.count} subjects
+                }).length} {UI_STRINGS.FILTER_COUNT_OF} {subjects.count} {UI_STRINGS.FILTER_COUNT_SUBJECTS}
               </p>
 
               <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
@@ -642,17 +639,27 @@ function App() {
                       ].map(field => `"${String(field).replace(/"/g, '""')}"`).join(',');
                     });
 
-                    const header = ['Characters', 'Readings', 'Meanings', 'Parts of Speech', 'Transitivity', 'Dan', 'Type', 'Level', 'SRS Stage'].join(',');
+                    const header = [
+                      CSV_HEADERS.CHARACTERS,
+                      CSV_HEADERS.READINGS,
+                      CSV_HEADERS.MEANINGS,
+                      CSV_HEADERS.PARTS_OF_SPEECH,
+                      CSV_HEADERS.TRANSITIVITY,
+                      CSV_HEADERS.DAN,
+                      CSV_HEADERS.TYPE,
+                      CSV_HEADERS.LEVEL,
+                      CSV_HEADERS.SRS_STAGE
+                    ].join(',');
                     const blob = new Blob([header + '\n' + csv.join('\n')], { type: 'text/csv' });
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = `wanikani-export-levels-${levelRange.min}-${levelRange.max}.csv`;
+                    a.download = FILE_NAMES.CSV_EXPORT(levelRange.min, levelRange.max);
                     a.click();
                     URL.revokeObjectURL(url);
                   }}
                 >
-                  Export CSV
+                  {UI_STRINGS.EXPORT_CSV_BUTTON}
                 </button>
 
                 <button
@@ -712,18 +719,24 @@ function App() {
                       row.map(field => `"${String(field).replace(/"/g, '""')}"`).join(',')
                     );
 
-                    const header = ['Characters', 'Readings', 'Meanings', 'Japanese', 'English'].join(',');
+                    const header = [
+                      CSV_HEADERS.CHARACTERS,
+                      CSV_HEADERS.READINGS,
+                      CSV_HEADERS.MEANINGS,
+                      CSV_HEADERS.JAPANESE,
+                      CSV_HEADERS.ENGLISH
+                    ].join(',');
                     const blob = new Blob([header + '\n' + csv.join('\n')], { type: 'text/csv' });
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = `wanikani-context-sentences-levels-${levelRange.min}-${levelRange.max}.csv`;
+                    a.download = FILE_NAMES.CONTEXT_SENTENCES(levelRange.min, levelRange.max);
                     a.click();
                     URL.revokeObjectURL(url);
                   }}
                   disabled={!subjectDetails}
                 >
-                  Export Context Sentences
+                  {UI_STRINGS.EXPORT_CONTEXT_SENTENCES_BUTTON}
                 </button>
 
                 <button
@@ -762,12 +775,12 @@ function App() {
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = `wanikani-list-levels-${levelRange.min}-${levelRange.max}.txt`;
+                    a.download = FILE_NAMES.LIST_EXPORT(levelRange.min, levelRange.max);
                     a.click();
                     URL.revokeObjectURL(url);
                   }}
                 >
-                  Export List
+                  {UI_STRINGS.EXPORT_LIST_BUTTON}
                 </button>
               </div>
             </div>

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { UI_STRINGS } from '../strings';
 
 function LevelRangeSlider({ min, max, value, onChange }) {
   const [minVal, setMinVal] = useState(value?.min || min);
@@ -32,12 +33,12 @@ function LevelRangeSlider({ min, max, value, onChange }) {
     <div className="range-slider">
       <div className="range-values">
         {minVal === maxVal ? (
-          <span>Level {minVal}</span>
+          <span>{UI_STRINGS.LEVEL_SINGLE} {minVal}</span>
         ) : (
           <>
-            <span>Level {minVal}</span>
-            <span>to</span>
-            <span>Level {maxVal}</span>
+            <span>{UI_STRINGS.LEVEL_SINGLE} {minVal}</span>
+            <span>{UI_STRINGS.LEVEL_RANGE_TO}</span>
+            <span>{UI_STRINGS.LEVEL_SINGLE} {maxVal}</span>
           </>
         )}
       </div>
