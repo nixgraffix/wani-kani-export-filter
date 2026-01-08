@@ -474,57 +474,41 @@ function App() {
 
             <div className="export-filters">
               <h3>Export Filters</h3>
-              <button
-                onClick={() => {
-                  // Check if all filters are currently selected
-                  const allSrsSelected = Object.values(srsFilter).every(v => v);
-                  const allPosSelected = Object.values(posFilter).every(v => v);
-                  const allSelected = allSrsSelected && allPosSelected;
-
-                  if (allSelected) {
-                    // Deselect all SRS filters
-                    setSrsFilter({
-                      locked: false,
-                      lesson: false,
-                      apprentice: false,
-                      guru: false,
-                      master: false,
-                      enlightened: false,
-                      burned: false
-                    });
-                    // Deselect all parts of speech filters
-                    const updatedPosFilter = {};
-                    Object.keys(posFilter).forEach(pos => {
-                      updatedPosFilter[pos] = false;
-                    });
-                    setPosFilter(updatedPosFilter);
-                  } else {
-                    // Select all SRS filters
-                    setSrsFilter({
-                      locked: true,
-                      lesson: true,
-                      apprentice: true,
-                      guru: true,
-                      master: true,
-                      enlightened: true,
-                      burned: true
-                    });
-                    // Select all parts of speech filters
-                    const updatedPosFilter = {};
-                    Object.keys(posFilter).forEach(pos => {
-                      updatedPosFilter[pos] = true;
-                    });
-                    setPosFilter(updatedPosFilter);
-                  }
-                }}
-                style={{ marginBottom: '1rem' }}
-              >
-                {Object.values(srsFilter).every(v => v) && Object.values(posFilter).every(v => v)
-                  ? 'Deselect All'
-                  : 'Select All'}
-              </button>
               <div className="filter-group">
-                <h4>SRS Level</h4>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                  <h4 style={{ margin: 0 }}>SRS Level</h4>
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      const allSelected = Object.values(srsFilter).every(v => v);
+                      if (allSelected) {
+                        setSrsFilter({
+                          locked: false,
+                          lesson: false,
+                          apprentice: false,
+                          guru: false,
+                          master: false,
+                          enlightened: false,
+                          burned: false
+                        });
+                      } else {
+                        setSrsFilter({
+                          locked: true,
+                          lesson: true,
+                          apprentice: true,
+                          guru: true,
+                          master: true,
+                          enlightened: true,
+                          burned: true
+                        });
+                      }
+                    }}
+                    type="button"
+                    style={{ fontSize: '0.85rem', padding: '0.25rem 0.5rem' }}
+                  >
+                    {Object.values(srsFilter).every(v => v) ? 'Deselect All' : 'Select All'}
+                  </button>
+                </div>
                 <div className="filter-checkboxes">
                   {Object.entries(srsFilter).map(([srs, checked]) => (
                     <label key={srs} className={`filter-checkbox srs-${srs}`}>
@@ -541,7 +525,24 @@ function App() {
 
               {Object.keys(posFilter).length > 0 && (
                 <div className="filter-group">
-                  <h4>Parts of Speech</h4>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                    <h4 style={{ margin: 0 }}>Parts of Speech</h4>
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        const allSelected = Object.values(posFilter).every(v => v);
+                        const updatedPosFilter = {};
+                        Object.keys(posFilter).forEach(pos => {
+                          updatedPosFilter[pos] = !allSelected;
+                        });
+                        setPosFilter(updatedPosFilter);
+                      }}
+                      type="button"
+                      style={{ fontSize: '0.85rem', padding: '0.25rem 0.5rem' }}
+                    >
+                      {Object.values(posFilter).every(v => v) ? 'Deselect All' : 'Select All'}
+                    </button>
+                  </div>
                   <div className="filter-checkboxes">
                     {Object.entries(posFilter)
                       .sort(([a], [b]) => {
