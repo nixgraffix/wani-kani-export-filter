@@ -422,10 +422,14 @@ function App() {
 
               <p className="filter-count">
                 Showing {[...subjects.data].filter(subject => {
+                  // Filter by subject type
+                  if (!subjectTypes[subject.type]) return false;
+
+                  // Filter by SRS stage
                   const srsKey = getSrsFilterKey(subject.srs_stage);
                   if (!srsFilter[srsKey]) return false;
 
-                  // Check parts of speech filter (only for vocabulary)
+                  // Filter by parts of speech
                   if (subjectDetails && Object.keys(posFilter).length > 0) {
                     const detail = subjectDetails.find(d => d.id === subject.id);
                     if (detail) {
@@ -447,8 +451,14 @@ function App() {
                   onClick={() => {
                     const filtered = [...subjects.data]
                       .filter(subject => {
+                        // Filter by subject type
+                        if (!subjectTypes[subject.type]) return false;
+
+                        // Filter by SRS stage
                         const srsKey = getSrsFilterKey(subject.srs_stage);
                         if (!srsFilter[srsKey]) return false;
+
+                        // Filter by parts of speech
                         if (subjectDetails && Object.keys(posFilter).length > 0) {
                           const detail = subjectDetails.find(d => d.id === subject.id);
                           if (detail) {
@@ -466,18 +476,28 @@ function App() {
 
                     const csv = filtered.map(s => {
                       const detail = subjectDetails?.find(d => d.id === s.id);
+                      const pos = detail?.parts_of_speech || [];
+
+                      // Extract transitivity (transitive verb or intransitive verb)
+                      const transitivity = pos.find(p => p === 'transitive verb' || p === 'intransitive verb') || '';
+
+                      // Extract dan (ichidan verb or godan verb)
+                      const dan = pos.find(p => p === 'ichidan verb' || p === 'godan verb') || '';
+
                       return [
                         s.characters || '',
                         s.readings?.join('; ') || '',
                         s.meanings.join('; '),
                         detail?.parts_of_speech?.join('; ') || '',
+                        transitivity,
+                        dan,
                         s.type,
                         s.level,
                         getSrsLabel(s.srs_stage)
                       ].map(field => `"${String(field).replace(/"/g, '""')}"`).join(',');
                     });
 
-                    const header = ['Characters', 'Readings', 'Meanings', 'Parts of Speech', 'Type', 'Level', 'SRS Stage'].join(',');
+                    const header = ['Characters', 'Readings', 'Meanings', 'Parts of Speech', 'Transitivity', 'Dan', 'Type', 'Level', 'SRS Stage'].join(',');
                     const blob = new Blob([header + '\n' + csv.join('\n')], { type: 'text/csv' });
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
@@ -494,8 +514,14 @@ function App() {
                   onClick={() => {
                     const filtered = [...subjects.data]
                       .filter(subject => {
+                        // Filter by subject type
+                        if (!subjectTypes[subject.type]) return false;
+
+                        // Filter by SRS stage
                         const srsKey = getSrsFilterKey(subject.srs_stage);
                         if (!srsFilter[srsKey]) return false;
+
+                        // Filter by parts of speech
                         if (subjectDetails && Object.keys(posFilter).length > 0) {
                           const detail = subjectDetails.find(d => d.id === subject.id);
                           if (detail) {
@@ -559,8 +585,14 @@ function App() {
                   onClick={() => {
                     const filtered = [...subjects.data]
                       .filter(subject => {
+                        // Filter by subject type
+                        if (!subjectTypes[subject.type]) return false;
+
+                        // Filter by SRS stage
                         const srsKey = getSrsFilterKey(subject.srs_stage);
                         if (!srsFilter[srsKey]) return false;
+
+                        // Filter by parts of speech
                         if (subjectDetails && Object.keys(posFilter).length > 0) {
                           const detail = subjectDetails.find(d => d.id === subject.id);
                           if (detail) {
@@ -598,10 +630,14 @@ function App() {
             <div className="subjects-grid">
               {[...subjects.data]
                 .filter(subject => {
+                  // Filter by subject type
+                  if (!subjectTypes[subject.type]) return false;
+
+                  // Filter by SRS stage
                   const srsKey = getSrsFilterKey(subject.srs_stage);
                   if (!srsFilter[srsKey]) return false;
 
-                  // Check parts of speech filter (only for vocabulary with details)
+                  // Filter by parts of speech
                   if (subjectDetails && Object.keys(posFilter).length > 0) {
                     const detail = subjectDetails.find(d => d.id === subject.id);
                     if (detail) {

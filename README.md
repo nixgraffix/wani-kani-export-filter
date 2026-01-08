@@ -44,7 +44,16 @@ This runs:
 - View user info and pending reviews
 - Browse subjects by level range and type (radical, kanji, vocabulary)
 - Filter by SRS stage and parts of speech
-- Export filtered subjects to CSV
+- Export filtered subjects to CSV with the following columns:
+  - Characters
+  - Readings
+  - Meanings
+  - Parts of Speech
+  - Transitivity (transitive verb or intransitive verb, if applicable)
+  - Dan (ichidan verb or godan verb, if applicable)
+  - Type
+  - Level
+  - SRS Stage
 - Export context sentences to CSV
 - Export character list to text file
 - Local SQLite caching to reduce API calls
