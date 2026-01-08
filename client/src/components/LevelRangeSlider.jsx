@@ -1,8 +1,16 @@
 import { useState, useEffect } from 'react';
 
-function LevelRangeSlider({ min, max, onChange }) {
-  const [minVal, setMinVal] = useState(min);
-  const [maxVal, setMaxVal] = useState(Math.min(min + 2, max));
+function LevelRangeSlider({ min, max, value, onChange }) {
+  const [minVal, setMinVal] = useState(value?.min || min);
+  const [maxVal, setMaxVal] = useState(value?.max || Math.min(min + 2, max));
+
+  // Update internal state when value prop changes
+  useEffect(() => {
+    if (value) {
+      setMinVal(value.min);
+      setMaxVal(value.max);
+    }
+  }, [value]);
 
   useEffect(() => {
     onChange({ min: minVal, max: maxVal });

@@ -22,31 +22,114 @@ function App() {
   const [reviews, setReviews] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [levelRange, setLevelRange] = useState({ min: 1, max: 3 });
   const [subjects, setSubjects] = useState(null);
   const [subjectsLoading, setSubjectsLoading] = useState(false);
-  const [subjectTypes, setSubjectTypes] = useState({
-    radical: true,
-    kanji: true,
-    vocabulary: true,
-    kana_vocabulary: true
-  });
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [detailsStatus, setDetailsStatus] = useState(null);
   const [detailsProgress, setDetailsProgress] = useState(null);
-
-  // Export filters
-  const [srsFilter, setSrsFilter] = useState({
-    locked: true,
-    lesson: true,
-    apprentice: true,
-    guru: true,
-    master: true,
-    enlightened: true,
-    burned: true
-  });
-  const [posFilter, setPosFilter] = useState({ '(empty)': true }); // parts of speech filter, always include empty option
   const [subjectDetails, setSubjectDetails] = useState(null);
+
+  // Helper to parse URL params and initialize state
+  const getInitialStateFromURL = () => {
+    const params = new URLSearchParams(window.location.search);
+
+    // Parse level range
+    const minLevel = parseInt(params.get('minLevel')) || 1;
+    const maxLevel = parseInt(params.get('maxLevel')) || 3;
+
+    // Parse subject types
+    const typesParam = params.get('types');
+    const subjectTypes = typesParam
+      ? {
+          radical: typesParam.includes('radical'),
+          kanji: typesParam.includes('kanji'),
+          vocabulary: typesParam.includes('vocabulary'),
+          kana_vocabulary: typesParam.includes('kana_vocabulary')
+        }
+      : {
+          radical: true,
+          kanji: true,
+          vocabulary: true,
+          kana_vocabulary: true
+        };
+
+    // Parse SRS filter
+    const srsParam = params.get('srs');
+    const srsFilter = srsParam
+      ? {
+          locked: srsParam.includes('locked'),
+          lesson: srsParam.includes('lesson'),
+          apprentice: srsParam.includes('apprentice'),
+          guru: srsParam.includes('guru'),
+          master: srsParam.includes('master'),
+          enlightened: srsParam.includes('enlightened'),
+          burned: srsParam.includes('burned')
+        }
+      : {
+          locked: true,
+          lesson: true,
+          apprentice: true,
+          guru: true,
+          master: true,
+          enlightened: true,
+          burned: true
+        };
+
+    // Parse parts of speech filter
+    const posParam = params.get('pos');
+    const posFilter = posParam
+      ? posParam.split(',').reduce((acc, pos) => {
+          acc[pos] = true;
+          return acc;
+        }, {})
+      : { '(empty)': true };
+
+    return { minLevel, maxLevel, subjectTypes, srsFilter, posFilter };
+  };
+
+  const initialState = getInitialStateFromURL();
+  const [levelRange, setLevelRange] = useState({ min: initialState.minLevel, max: initialState.maxLevel });
+  const [subjectTypes, setSubjectTypes] = useState(initialState.subjectTypes);
+  const [srsFilter, setSrsFilter] = useState(initialState.srsFilter);
+  const [posFilter, setPosFilter] = useState(initialState.posFilter);
+  const [hasAutoFetched, setHasAutoFetched] = useState(false);
+
+  // Update URL whenever state changes
+  useEffect(() => {
+    const params = new URLSearchParams();
+
+    // Add level range
+    params.set('minLevel', levelRange.min);
+    params.set('maxLevel', levelRange.max);
+
+    // Add subject types (only include checked ones)
+    const checkedTypes = Object.entries(subjectTypes)
+      .filter(([, checked]) => checked)
+      .map(([type]) => type);
+    if (checkedTypes.length > 0) {
+      params.set('types', checkedTypes.join(','));
+    }
+
+    // Add SRS filter (only include checked ones)
+    const checkedSrs = Object.entries(srsFilter)
+      .filter(([, checked]) => checked)
+      .map(([srs]) => srs);
+    if (checkedSrs.length > 0) {
+      params.set('srs', checkedSrs.join(','));
+    }
+
+    // Add parts of speech filter (only include checked ones)
+    const checkedPos = Object.entries(posFilter)
+      .filter(([, checked]) => checked)
+      .map(([pos]) => pos);
+    if (checkedPos.length > 0) {
+      params.set('pos', checkedPos.join(','));
+    }
+
+    // Update URL without reloading the page
+    const newUrl = `${window.location.pathname}?${params.toString()}`;
+    window.history.replaceState({}, '', newUrl);
+  }, [levelRange, subjectTypes, srsFilter, posFilter]);
 
   const handleTypeToggle = (type) => {
     setSubjectTypes(prev => ({ ...prev, [type]: !prev[type] }));
@@ -221,6 +304,17 @@ function App() {
     fetchData();
   }, []);
 
+  // Auto-fetch subjects on mount if URL has parameters (only once)
+  useEffect(() => {
+    if (hasAutoFetched || !user) return;
+
+    const params = new URLSearchParams(window.location.search);
+    if (params.has('minLevel') || params.has('maxLevel') || params.has('types')) {
+      fetchSubjects();
+      setHasAutoFetched(true);
+    }
+  }, [user, hasAutoFetched, fetchSubjects]);
+
   // Auto-fetch details when subjects load
   useEffect(() => {
     if (subjects && subjects.data.length > 0) {
@@ -244,7 +338,7 @@ function App() {
             }
           });
           if (allPos.size > 0) {
-            const posFilterInit = {};
+            const posFilterInit = { '(empty)': true }; // Always include empty option
             allPos.forEach(pos => { posFilterInit[pos] = true; });
             setPosFilter(posFilterInit);
             console.log('[Details] Parts of speech:', Array.from(allPos));
@@ -314,6 +408,7 @@ function App() {
           <LevelRangeSlider
             min={1}
             max={user.data.max_level}
+            value={levelRange}
             onChange={setLevelRange}
           />
         )}
@@ -379,6 +474,55 @@ function App() {
 
             <div className="export-filters">
               <h3>Export Filters</h3>
+              <button
+                onClick={() => {
+                  // Check if all filters are currently selected
+                  const allSrsSelected = Object.values(srsFilter).every(v => v);
+                  const allPosSelected = Object.values(posFilter).every(v => v);
+                  const allSelected = allSrsSelected && allPosSelected;
+
+                  if (allSelected) {
+                    // Deselect all SRS filters
+                    setSrsFilter({
+                      locked: false,
+                      lesson: false,
+                      apprentice: false,
+                      guru: false,
+                      master: false,
+                      enlightened: false,
+                      burned: false
+                    });
+                    // Deselect all parts of speech filters
+                    const updatedPosFilter = {};
+                    Object.keys(posFilter).forEach(pos => {
+                      updatedPosFilter[pos] = false;
+                    });
+                    setPosFilter(updatedPosFilter);
+                  } else {
+                    // Select all SRS filters
+                    setSrsFilter({
+                      locked: true,
+                      lesson: true,
+                      apprentice: true,
+                      guru: true,
+                      master: true,
+                      enlightened: true,
+                      burned: true
+                    });
+                    // Select all parts of speech filters
+                    const updatedPosFilter = {};
+                    Object.keys(posFilter).forEach(pos => {
+                      updatedPosFilter[pos] = true;
+                    });
+                    setPosFilter(updatedPosFilter);
+                  }
+                }}
+                style={{ marginBottom: '1rem' }}
+              >
+                {Object.values(srsFilter).every(v => v) && Object.values(posFilter).every(v => v)
+                  ? 'Deselect All'
+                  : 'Select All'}
+              </button>
               <div className="filter-group">
                 <h4>SRS Level</h4>
                 <div className="filter-checkboxes">
