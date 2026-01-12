@@ -194,12 +194,108 @@ async function fetchSubjectsByLevels(levels, types = null) {
 router.get('/subjects', async (req, res) => {
   try {
     const levelsParam = req.query.levels;
+    const idsParam = req.query.ids;
     const typesParam = req.query.types;
 
-    if (!levelsParam) {
-      return res.status(400).json({ error: 'levels query parameter required (e.g., ?levels=1,2,3)' });
+    // Support both levels and IDs queries
+    if (!levelsParam && !idsParam) {
+      return res.status(400).json({ error: 'Either levels or ids query parameter required (e.g., ?levels=1,2,3 or ?ids=1,2,3)' });
     }
 
+    // If IDs are provided, fetch by IDs
+    if (idsParam) {
+      const ids = idsParam.split(',').map(n => parseInt(n, 10)).filter(n => !isNaN(n));
+      if (ids.length === 0) {
+        return res.status(400).json({ error: 'Invalid ids parameter' });
+      }
+
+      // Check cache first
+      const idPlaceholders = ids.map(() => '?').join(',');
+      const query = `SELECT * FROM subjects WHERE id IN (${idPlaceholders})`;
+      const cached = db.prepare(query).all(...ids);
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+
+      // If all IDs are cached and fresh, return cached data
+      if (cached.length === ids.length && cached.length > 0 && cached[0].fetched_at > oneHourAgo) {
+        return res.json({
+          source: 'cache',
+          count: cached.length,
+          data: cached.map(s => ({
+            ...s,
+            meanings: JSON.parse(s.meanings),
+            readings: JSON.parse(s.readings),
+            srs_stage: s.srs_stage,
+            unlocked: s.srs_stage !== null,
+            started: s.srs_stage !== null && s.srs_stage > 0,
+            passed: s.srs_stage !== null && s.srs_stage >= 5,
+            burned: s.srs_stage === 9
+          }))
+        });
+      }
+
+      // Fetch fresh data from API
+      const subjects = [];
+      for (const id of ids) {
+        try {
+          const result = await fetchFromWaniKani(`/subjects/${id}`);
+          const subject = result.data;
+          subjects.push({
+            id: result.id,
+            type: result.object,
+            level: subject.level,
+            characters: subject.characters || subject.slug,
+            meanings: subject.meanings.map(m => m.meaning),
+            readings: subject.readings?.map(r => r.reading) || []
+          });
+        } catch (err) {
+          console.error(`Failed to fetch subject ${id}:`, err.message);
+        }
+      }
+
+      // Fetch assignments for these subjects to get srs_stage
+      const assignments = await fetchAssignmentsBySubjectIds(ids);
+
+      // Merge srs_stage into subjects
+      const subjectsWithSrs = subjects.map(subject => {
+        const assignment = assignments.get(subject.id);
+        return {
+          ...subject,
+          srs_stage: assignment?.srs_stage ?? null,
+          unlocked: assignment?.unlocked_at != null,
+          started: assignment?.started_at != null,
+          passed: assignment?.passed_at != null,
+          burned: assignment?.burned_at != null
+        };
+      });
+
+      // Cache in database
+      const insert = db.prepare(`
+        INSERT OR REPLACE INTO subjects (id, type, level, characters, meanings, readings, srs_stage, fetched_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `);
+
+      const fetchedAt = new Date().toISOString();
+      for (const subject of subjectsWithSrs) {
+        insert.run(
+          subject.id,
+          subject.type,
+          subject.level,
+          subject.characters,
+          JSON.stringify(subject.meanings),
+          JSON.stringify(subject.readings),
+          subject.srs_stage,
+          fetchedAt
+        );
+      }
+
+      return res.json({
+        source: 'api',
+        count: subjectsWithSrs.length,
+        data: subjectsWithSrs
+      });
+    }
+
+    // Original levels-based logic
     const levels = levelsParam.split(',').map(n => parseInt(n, 10)).filter(n => !isNaN(n));
     if (levels.length === 0) {
       return res.status(400).json({ error: 'Invalid levels parameter' });

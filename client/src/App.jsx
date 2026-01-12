@@ -16,6 +16,7 @@ function App() {
   const [language, setLanguageState] = useState(getCurrentLanguage());
   const [grammarLessons, setGrammarLessons] = useState(null);
   const [grammarFilter, setGrammarFilter] = useState({});
+  const [grammarExpanded, setGrammarExpanded] = useState(false);
 
   // Helper to parse URL params and initialize state
   const getInitialStateFromURL = () => {
@@ -90,14 +91,17 @@ function App() {
   const [srsFilter, setSrsFilter] = useState(initialState.srsFilter);
   const [posFilter, setPosFilter] = useState(initialState.posFilter);
   const [hasAutoFetched, setHasAutoFetched] = useState(false);
+  const [disableUrlSync, setDisableUrlSync] = useState(false);
 
   // Initialize grammar filter from URL, but update when lessons are loaded
   useEffect(() => {
     setGrammarFilter(initialState.grammarFilter);
   }, []);
 
-  // Update URL whenever state changes
+  // Update URL whenever state changes (unless disabled)
   useEffect(() => {
+    if (disableUrlSync) return;
+
     const params = new URLSearchParams();
 
     // Add level range
@@ -139,7 +143,7 @@ function App() {
     // Update URL without reloading the page
     const newUrl = `${window.location.pathname}?${params.toString()}`;
     window.history.replaceState({}, '', newUrl);
-  }, [levelRange, subjectTypes, srsFilter, posFilter, grammarFilter]);
+  }, [levelRange, subjectTypes, srsFilter, posFilter, grammarFilter, disableUrlSync]);
 
   const handleTypeToggle = (type) => {
     setSubjectTypes(prev => ({ ...prev, [type]: !prev[type] }));
@@ -321,6 +325,9 @@ function App() {
       return;
     }
 
+    // Re-enable URL sync when using normal browse functionality
+    setDisableUrlSync(false);
+
     setSubjectsLoading(true);
     try {
       const levels = [];
@@ -448,6 +455,45 @@ function App() {
                   </ul>
                 </div>
               )}
+              <button
+                onClick={async () => {
+                  // Get unique subject IDs from reviews
+                  const subjectIds = [...new Set(reviews.data.map(r => r.subject_id))];
+                  console.log('Loading subjects from reviews:', subjectIds);
+
+                  // Disable URL sync and clear URL query parameters
+                  setDisableUrlSync(true);
+                  window.history.replaceState({}, '', window.location.pathname);
+
+                  setSubjectsLoading(true);
+                  try {
+                    const params = new URLSearchParams({
+                      ids: subjectIds.join(',')
+                    });
+                    const res = await fetch(`/api/subjects?${params}`);
+                    if (!res.ok) throw new Error('Failed to fetch subjects');
+                    const data = await res.json();
+                    setSubjects(data);
+
+                    // Update level range to match loaded subjects
+                    if (data.data.length > 0) {
+                      const levels = data.data.map(s => s.level);
+                      const minLvl = Math.min(...levels);
+                      const maxLvl = Math.max(...levels);
+                      setLevelRange({ min: minLvl, max: maxLvl });
+                    }
+                  } catch (err) {
+                    console.error(err);
+                    setError(err.message);
+                  } finally {
+                    setSubjectsLoading(false);
+                  }
+                }}
+                disabled={reviews.count === 0 || subjectsLoading}
+                style={{ marginTop: '1rem' }}
+              >
+                {subjectsLoading ? 'Loading...' : 'Load Subjects'}
+              </button>
               <p className="source">{UI_STRINGS.SOURCE} {reviews.source === 'cache' ? UI_STRINGS.SOURCE_CACHE : UI_STRINGS.SOURCE_API}</p>
             </section>
           )}
@@ -522,99 +568,6 @@ function App() {
               )}
             </div>
 
-            <div className="export-filters">
-              <h3>{UI_STRINGS.EXPORT_FILTERS_TITLE}</h3>
-              <div className="filter-group">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                  <h4 style={{ margin: 0 }}>{UI_STRINGS.SRS_LEVEL_TITLE}</h4>
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      const allSelected = Object.values(srsFilter).every(v => v);
-                      if (allSelected) {
-                        setSrsFilter({
-                          locked: false,
-                          lesson: false,
-                          apprentice: false,
-                          guru: false,
-                          master: false,
-                          enlightened: false,
-                          burned: false
-                        });
-                      } else {
-                        setSrsFilter({
-                          locked: true,
-                          lesson: true,
-                          apprentice: true,
-                          guru: true,
-                          master: true,
-                          enlightened: true,
-                          burned: true
-                        });
-                      }
-                    }}
-                    type="button"
-                    style={{ fontSize: '0.85rem', padding: '0.25rem 0.5rem' }}
-                  >
-                    {Object.values(srsFilter).every(v => v) ? UI_STRINGS.DESELECT_ALL_BUTTON : UI_STRINGS.SELECT_ALL_BUTTON}
-                  </button>
-                </div>
-                <div className="filter-checkboxes">
-                  {Object.entries(srsFilter).map(([srs, checked]) => (
-                    <label key={srs} className={`filter-checkbox srs-${srs}`}>
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        onChange={() => handleSrsFilterToggle(srs)}
-                      />
-                      <span>{srs.charAt(0).toUpperCase() + srs.slice(1)}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              {Object.keys(posFilter).length > 0 && (
-                <div className="filter-group">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                    <h4 style={{ margin: 0 }}>{UI_STRINGS.PARTS_OF_SPEECH_TITLE}</h4>
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        const allSelected = Object.values(posFilter).every(v => v);
-                        const updatedPosFilter = {};
-                        Object.keys(posFilter).forEach(pos => {
-                          updatedPosFilter[pos] = !allSelected;
-                        });
-                        setPosFilter(updatedPosFilter);
-                      }}
-                      type="button"
-                      style={{ fontSize: '0.85rem', padding: '0.25rem 0.5rem' }}
-                    >
-                      {Object.values(posFilter).every(v => v) ? UI_STRINGS.DESELECT_ALL_BUTTON : UI_STRINGS.SELECT_ALL_BUTTON}
-                    </button>
-                  </div>
-                  <div className="filter-checkboxes">
-                    {Object.entries(posFilter)
-                      .sort(([a], [b]) => {
-                        // Put (empty) first
-                        if (a === '(empty)') return -1;
-                        if (b === '(empty)') return 1;
-                        return a.localeCompare(b);
-                      })
-                      .map(([pos, checked]) => (
-                        <label key={pos} className={`filter-checkbox pos ${pos === '(empty)' ? 'empty' : ''}`}>
-                          <input
-                            type="checkbox"
-                            checked={checked}
-                            onChange={() => handlePosFilterToggle(pos)}
-                          />
-                          <span>{pos}</span>
-                        </label>
-                      ))}
-                  </div>
-                </div>
-              )}
-            </div>
           </div>
         )}
       </section>
@@ -824,27 +777,42 @@ function App() {
 
               {grammarLessons && grammarLessons.length > 0 && (
                 <section className="card grammar-lessons-card">
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: grammarExpanded ? '1rem' : '0' }}>
                     <h3 style={{ margin: 0 }}>{UI_STRINGS.GRAMMAR_LESSONS_TITLE}</h3>
                     <button
                       onClick={(e) => {
                         e.preventDefault();
-                        const allSelected = Object.values(grammarFilter).every(v => v);
-                        const updatedGrammarFilter = {};
-                        grammarLessons.forEach(lesson => {
-                          updatedGrammarFilter[lesson.id] = !allSelected;
-                        });
-                        setGrammarFilter(updatedGrammarFilter);
+                        setGrammarExpanded(!grammarExpanded);
                       }}
                       type="button"
                       style={{ fontSize: '0.85rem', padding: '0.25rem 0.5rem' }}
                     >
-                      {Object.values(grammarFilter).every(v => v) ? UI_STRINGS.DESELECT_ALL_BUTTON : UI_STRINGS.SELECT_ALL_BUTTON}
+                      {grammarExpanded ? 'Hide' : 'View'}
                     </button>
                   </div>
 
-                  {/* Group lessons by level */}
-                  {Object.entries(
+                  {grammarExpanded && (
+                    <>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            const allSelected = Object.values(grammarFilter).every(v => v);
+                            const updatedGrammarFilter = {};
+                            grammarLessons.forEach(lesson => {
+                              updatedGrammarFilter[lesson.id] = !allSelected;
+                            });
+                            setGrammarFilter(updatedGrammarFilter);
+                          }}
+                          type="button"
+                          style={{ fontSize: '0.85rem', padding: '0.25rem 0.5rem' }}
+                        >
+                          {Object.values(grammarFilter).every(v => v) ? UI_STRINGS.DESELECT_ALL_BUTTON : UI_STRINGS.SELECT_ALL_BUTTON}
+                        </button>
+                      </div>
+
+                      {/* Group lessons by level */}
+                      {Object.entries(
                     grammarLessons.reduce((acc, lesson) => {
                       const level = lesson.level || 'Unknown';
                       if (!acc[level]) acc[level] = [];
@@ -889,29 +857,125 @@ function App() {
                           ))}
                       </div>
                     </div>
-                  ))}
+                      ))}
 
-                  <button
-                    onClick={() => {
-                      // Get selected lessons
-                      const selectedLessons = grammarLessons.filter(lesson => grammarFilter[lesson.id]);
-                      console.log('Selected grammar lessons:', selectedLessons);
-                      // TODO: Implement grammar prompt generation
-                      alert(`Generate prompts for ${selectedLessons.length} selected lesson(s)`);
-                    }}
-                    disabled={!Object.values(grammarFilter).some(v => v)}
-                    style={{
-                      marginTop: '1rem',
-                      width: '100%',
-                      padding: '0.75rem',
-                      fontSize: '1rem',
-                      fontWeight: 'bold'
-                    }}
-                  >
-                    {UI_STRINGS.GENERATE_GRAMMAR_PROMPTS_BUTTON}
-                  </button>
+                      <button
+                        onClick={() => {
+                          // Get selected lessons
+                          const selectedLessons = grammarLessons.filter(lesson => grammarFilter[lesson.id]);
+                          console.log('Selected grammar lessons:', selectedLessons);
+                          // TODO: Implement grammar prompt generation
+                          alert(`Generate prompts for ${selectedLessons.length} selected lesson(s)`);
+                        }}
+                        disabled={!Object.values(grammarFilter).some(v => v)}
+                        style={{
+                          marginTop: '1rem',
+                          width: '100%',
+                          padding: '0.75rem',
+                          fontSize: '1rem',
+                          fontWeight: 'bold'
+                        }}
+                      >
+                        {UI_STRINGS.GENERATE_GRAMMAR_PROMPTS_BUTTON}
+                      </button>
+                    </>
+                  )}
                 </section>
               )}
+
+              <section className="card export-filters-card">
+                <h3>{UI_STRINGS.EXPORT_FILTERS_TITLE}</h3>
+                <div className="filter-group">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                    <h4 style={{ margin: 0 }}>{UI_STRINGS.SRS_LEVEL_TITLE}</h4>
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        const allSelected = Object.values(srsFilter).every(v => v);
+                        if (allSelected) {
+                          setSrsFilter({
+                            locked: false,
+                            lesson: false,
+                            apprentice: false,
+                            guru: false,
+                            master: false,
+                            enlightened: false,
+                            burned: false
+                          });
+                        } else {
+                          setSrsFilter({
+                            locked: true,
+                            lesson: true,
+                            apprentice: true,
+                            guru: true,
+                            master: true,
+                            enlightened: true,
+                            burned: true
+                          });
+                        }
+                      }}
+                      type="button"
+                      style={{ fontSize: '0.85rem', padding: '0.25rem 0.5rem' }}
+                    >
+                      {Object.values(srsFilter).every(v => v) ? UI_STRINGS.DESELECT_ALL_BUTTON : UI_STRINGS.SELECT_ALL_BUTTON}
+                    </button>
+                  </div>
+                  <div className="filter-checkboxes">
+                    {Object.entries(srsFilter).map(([srs, checked]) => (
+                      <label key={srs} className={`filter-checkbox srs-${srs}`}>
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => handleSrsFilterToggle(srs)}
+                        />
+                        <span>{srs.charAt(0).toUpperCase() + srs.slice(1)}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {Object.keys(posFilter).length > 0 && (
+                  <div className="filter-group">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                      <h4 style={{ margin: 0 }}>{UI_STRINGS.PARTS_OF_SPEECH_TITLE}</h4>
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          const allSelected = Object.values(posFilter).every(v => v);
+                          const updatedPosFilter = {};
+                          Object.keys(posFilter).forEach(pos => {
+                            updatedPosFilter[pos] = !allSelected;
+                          });
+                          setPosFilter(updatedPosFilter);
+                        }}
+                        type="button"
+                        style={{ fontSize: '0.85rem', padding: '0.25rem 0.5rem' }}
+                      >
+                        {Object.values(posFilter).every(v => v) ? UI_STRINGS.DESELECT_ALL_BUTTON : UI_STRINGS.SELECT_ALL_BUTTON}
+                      </button>
+                    </div>
+                    <div className="filter-checkboxes">
+                      {Object.entries(posFilter)
+                        .sort(([a], [b]) => {
+                          // Put (empty) first
+                          if (a === '(empty)') return -1;
+                          if (b === '(empty)') return 1;
+                          return a.localeCompare(b);
+                        })
+                        .map(([pos, checked]) => (
+                          <label key={pos} className={`filter-checkbox pos ${pos === '(empty)' ? 'empty' : ''}`}>
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => handlePosFilterToggle(pos)}
+                            />
+                            <span>{pos}</span>
+                          </label>
+                        ))}
+                    </div>
+                  </div>
+                )}
+              </section>
 
               <section className="card subjects-grid-card">
                 {(() => {
