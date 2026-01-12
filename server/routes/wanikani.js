@@ -565,4 +565,78 @@ router.post('/sync', async (req, res) => {
   }
 });
 
+// Get all grammar lessons
+router.get('/grammar-lessons', async (req, res) => {
+  try {
+    const lessons = db.prepare('SELECT * FROM grammar_lessons ORDER BY order_num').all();
+    res.json({
+      count: lessons.length,
+      data: lessons
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Seed grammar lessons (initial data setup)
+router.post('/grammar-lessons/seed', async (req, res) => {
+  try {
+    const grammarLessons = [
+      // N5 Lessons
+      { id: 1, order_num: 1, title: 'Sentence Basics (Copula & Structure)', description: 'です/だ basic sentence structure questions and possession', level: 'N5' },
+      { id: 2, order_num: 2, title: 'Core Particles', description: 'は が を に で と へ から まで', level: 'N5' },
+      { id: 3, order_num: 3, title: 'Verbs: Tense & Polarity', description: 'ます form present past affirmative and negative', level: 'N5' },
+      { id: 4, order_num: 4, title: 'Existence Verbs', description: 'あります います and location usage', level: 'N5' },
+      { id: 5, order_num: 5, title: 'Adjectives', description: 'い-adjectives and な-adjectives forms and usage', level: 'N5' },
+      { id: 6, order_num: 6, title: 'Time & Frequency', description: 'Time expressions frequency adverbs and ranges', level: 'N5' },
+      { id: 7, order_num: 7, title: 'Requests & Ability', description: 'てください invitations ability likes and skill', level: 'N5' },
+      { id: 8, order_num: 8, title: 'Te-Form Basics', description: 'Te-form conjugation permissions prohibitions sequences', level: 'N5' },
+      { id: 9, order_num: 9, title: 'Modifiers & Clauses', description: 'Reasons contrast timing and advice', level: 'N5' },
+      { id: 10, order_num: 10, title: 'N5 Completion Grammar', description: 'Desires plans before after counters', level: 'N5' },
+
+      // N4 Lessons
+      { id: 11, order_num: 1, title: 'Plain Form & Sentence Expansion', description: 'Plain forms thoughts reported speech', level: 'N4' },
+      { id: 12, order_num: 2, title: 'Te-Form Expansion', description: 'Completion preparation trial and giving receiving', level: 'N4' },
+      { id: 13, order_num: 3, title: 'Verb Voice & Ability', description: 'Potential passive and causative intro', level: 'N4' },
+      { id: 14, order_num: 4, title: 'Comparisons & Preferences', description: 'Comparisons superlatives wants', level: 'N4' },
+      { id: 15, order_num: 5, title: 'Conditionals', description: 'たら と ば conditional usage', level: 'N4' },
+      { id: 16, order_num: 6, title: 'Noun Modification & Clauses', description: 'Relative clauses and sentence modifiers', level: 'N4' },
+      { id: 17, order_num: 7, title: 'Purpose Reason Result', description: 'ために ように ので から', level: 'N4' },
+      { id: 18, order_num: 8, title: 'Guessing & Intention', description: 'Plans appearance probability', level: 'N4' },
+      { id: 19, order_num: 9, title: 'Restrictions & Emphasis', description: 'Only limits emphasis expressions', level: 'N4' },
+      { id: 20, order_num: 10, title: 'Politeness & Set Expressions', description: 'Keigo intro formality common patterns', level: 'N4' }
+    ];
+
+    const insert = db.prepare(`
+      INSERT OR REPLACE INTO grammar_lessons (id, order_num, title, description, level, created_at)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `);
+
+    const createdAt = new Date().toISOString();
+    for (const lesson of grammarLessons) {
+      insert.run(lesson.id, lesson.order_num, lesson.title, lesson.description, lesson.level, createdAt);
+    }
+
+    res.json({
+      message: 'Grammar lessons seeded successfully',
+      count: grammarLessons.length
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Migration endpoint to update existing grammar lessons with level
+router.post('/grammar-lessons/migrate-level', async (req, res) => {
+  try {
+    db.prepare('UPDATE grammar_lessons SET level = ? WHERE level IS NULL').run('N5');
+
+    res.json({
+      message: 'Grammar lessons updated with level successfully'
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 export default router;

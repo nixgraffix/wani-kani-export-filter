@@ -30,6 +30,7 @@ const TRANSLATIONS = {
     EXPORT_FILTERS_TITLE: 'Export Filters',
     SRS_LEVEL_TITLE: 'SRS Level',
     PARTS_OF_SPEECH_TITLE: 'Parts of Speech',
+    GRAMMAR_LESSONS_TITLE: 'Grammar Lessons',
     SELECT_ALL_BUTTON: 'Select All',
     DESELECT_ALL_BUTTON: 'Deselect All',
     FILTER_COUNT_SHOWING: 'Showing',
@@ -55,6 +56,9 @@ const TRANSLATIONS = {
     EXPORT_CSV_BUTTON: 'Export CSV',
     EXPORT_CONTEXT_SENTENCES_BUTTON: 'Export Context Sentences',
     EXPORT_LIST_BUTTON: 'Export List',
+
+    // Grammar
+    GENERATE_GRAMMAR_PROMPTS_BUTTON: 'Generate Grammar Prompts',
 
     // Common
     REFRESH_DATA_BUTTON: 'Refresh Data',
@@ -118,6 +122,7 @@ const TRANSLATIONS = {
     EXPORT_FILTERS_TITLE: 'エクスポートフィルター',
     SRS_LEVEL_TITLE: 'SRSレベル',
     PARTS_OF_SPEECH_TITLE: '品詞',
+    GRAMMAR_LESSONS_TITLE: '文法レッスン',
     SELECT_ALL_BUTTON: 'すべて選択',
     DESELECT_ALL_BUTTON: 'すべて解除',
     FILTER_COUNT_SHOWING: '表示中',
@@ -143,6 +148,9 @@ const TRANSLATIONS = {
     EXPORT_CSV_BUTTON: 'CSVエクスポート',
     EXPORT_CONTEXT_SENTENCES_BUTTON: '例文エクスポート',
     EXPORT_LIST_BUTTON: 'リストエクスポート',
+
+    // Grammar
+    GENERATE_GRAMMAR_PROMPTS_BUTTON: '文法プロンプト生成',
 
     // Common
     REFRESH_DATA_BUTTON: 'データ更新',

@@ -73,4 +73,23 @@ try {
   // Column already exists, ignore
 }
 
+// Create grammar_lessons table
+db.exec(`
+  CREATE TABLE IF NOT EXISTS grammar_lessons (
+    id INTEGER PRIMARY KEY,
+    order_num INTEGER,
+    title TEXT,
+    description TEXT,
+    level TEXT,
+    created_at TEXT
+  );
+`);
+
+// Migration: add level column to grammar_lessons if it doesn't exist
+try {
+  db.exec('ALTER TABLE grammar_lessons ADD COLUMN level TEXT');
+} catch (e) {
+  // Column already exists, ignore
+}
+
 export default db;

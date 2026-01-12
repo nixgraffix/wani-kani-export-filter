@@ -12,9 +12,74 @@ body {
 }
 
 .container {
-  max-width: 800px;
+  max-width: 1600px;
   margin: 0 auto;
   padding: 2rem;
+}
+
+.two-column-layout {
+  display: grid;
+  grid-template-columns: 450px 1fr;
+  gap: 1rem;
+  align-items: start;
+}
+
+.left-column {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.right-column {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  position: sticky;
+  top: 1rem;
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
+}
+
+.export-card {
+  flex-shrink: 0;
+}
+
+.export-card h3 {
+  color: #00aaff;
+  margin-bottom: 1rem;
+  font-size: 1.2rem;
+}
+
+.grammar-lessons-card {
+  flex-shrink: 0;
+}
+
+.grammar-lessons-card h3 {
+  color: #00aaff;
+  font-size: 1.2rem;
+}
+
+.subjects-grid-card {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.subjects-grid-card .subjects-grid {
+  flex: 1;
+  overflow-y: auto;
+}
+
+@media (max-width: 1200px) {
+  .two-column-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .right-column {
+    position: static;
+    max-height: none;
+  }
 }
 
 header {
@@ -46,6 +111,10 @@ button:hover {
   background: #16213e;
   border-radius: 8px;
   padding: 1.5rem;
+}
+
+/* Legacy support for single column (keep margin-bottom for backwards compat) */
+.container > .card {
   margin-bottom: 1rem;
 }
 

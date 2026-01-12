@@ -14,6 +14,8 @@ function App() {
   const [detailsProgress, setDetailsProgress] = useState(null);
   const [subjectDetails, setSubjectDetails] = useState(null);
   const [language, setLanguageState] = useState(getCurrentLanguage());
+  const [grammarLessons, setGrammarLessons] = useState(null);
+  const [grammarFilter, setGrammarFilter] = useState({});
 
   // Helper to parse URL params and initialize state
   const getInitialStateFromURL = () => {
@@ -70,7 +72,16 @@ function App() {
         }, {})
       : { '(empty)': true };
 
-    return { minLevel, maxLevel, subjectTypes, srsFilter, posFilter };
+    // Parse grammar filter
+    const grammarParam = params.get('grammar');
+    const grammarFilter = grammarParam
+      ? grammarParam.split(',').reduce((acc, id) => {
+          acc[id] = true;
+          return acc;
+        }, {})
+      : {};
+
+    return { minLevel, maxLevel, subjectTypes, srsFilter, posFilter, grammarFilter };
   };
 
   const initialState = getInitialStateFromURL();
@@ -79,6 +90,11 @@ function App() {
   const [srsFilter, setSrsFilter] = useState(initialState.srsFilter);
   const [posFilter, setPosFilter] = useState(initialState.posFilter);
   const [hasAutoFetched, setHasAutoFetched] = useState(false);
+
+  // Initialize grammar filter from URL, but update when lessons are loaded
+  useEffect(() => {
+    setGrammarFilter(initialState.grammarFilter);
+  }, []);
 
   // Update URL whenever state changes
   useEffect(() => {
@@ -112,10 +128,18 @@ function App() {
       params.set('pos', checkedPos.join(','));
     }
 
+    // Add grammar filter (only include checked ones)
+    const checkedGrammar = Object.entries(grammarFilter)
+      .filter(([, checked]) => checked)
+      .map(([id]) => id);
+    if (checkedGrammar.length > 0) {
+      params.set('grammar', checkedGrammar.join(','));
+    }
+
     // Update URL without reloading the page
     const newUrl = `${window.location.pathname}?${params.toString()}`;
     window.history.replaceState({}, '', newUrl);
-  }, [levelRange, subjectTypes, srsFilter, posFilter]);
+  }, [levelRange, subjectTypes, srsFilter, posFilter, grammarFilter]);
 
   const handleTypeToggle = (type) => {
     setSubjectTypes(prev => ({ ...prev, [type]: !prev[type] }));
@@ -127,6 +151,10 @@ function App() {
 
   const handlePosFilterToggle = (pos) => {
     setPosFilter(prev => ({ ...prev, [pos]: !prev[pos] }));
+  };
+
+  const handleGrammarFilterToggle = (id) => {
+    setGrammarFilter(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
   const handleLanguageToggle = () => {
@@ -261,6 +289,28 @@ function App() {
     fetchData();
   };
 
+  const fetchGrammarLessons = async () => {
+    try {
+      const res = await fetch('/api/grammar-lessons');
+      if (!res.ok) {
+        throw new Error('Failed to fetch grammar lessons');
+      }
+      const data = await res.json();
+      setGrammarLessons(data.data);
+
+      // Initialize grammar filter with all lessons selected if no URL params
+      if (Object.keys(grammarFilter).length === 0 && data.data.length > 0) {
+        const allSelected = data.data.reduce((acc, lesson) => {
+          acc[lesson.id] = true;
+          return acc;
+        }, {});
+        setGrammarFilter(allSelected);
+      }
+    } catch (err) {
+      console.error('Failed to fetch grammar lessons:', err);
+    }
+  };
+
   const fetchSubjects = useCallback(async () => {
     const selectedTypes = Object.entries(subjectTypes)
       .filter(([, checked]) => checked)
@@ -294,6 +344,7 @@ function App() {
 
   useEffect(() => {
     fetchData();
+    fetchGrammarLessons();
   }, []);
 
   // Auto-fetch subjects on mount if URL has parameters (only once)
@@ -366,40 +417,42 @@ function App() {
         </div>
       </header>
 
-      {user && (
-        <section className="card">
-          <h2>{UI_STRINGS.USER_INFO_TITLE}</h2>
-          <p><strong>{UI_STRINGS.USER_USERNAME}</strong> {user.data.username}</p>
-          <p><strong>{UI_STRINGS.USER_LEVEL}</strong> {user.data.level} / {user.data.max_level}</p>
-          <p className="source">{UI_STRINGS.SOURCE} {user.source === 'cache' ? UI_STRINGS.SOURCE_CACHE : UI_STRINGS.SOURCE_API}</p>
-        </section>
-      )}
-
-      {reviews && (
-        <section className="card">
-          <h2>{UI_STRINGS.REVIEWS_AVAILABLE_TITLE}</h2>
-          <p className="review-count">{reviews.count}</p>
-          <p>{UI_STRINGS.REVIEWS_ITEMS_READY}</p>
-          {reviews.count > 0 && (
-            <div className="review-breakdown">
-              <h3>{UI_STRINGS.REVIEWS_BY_TYPE}</h3>
-              <ul>
-                {Object.entries(
-                  reviews.data.reduce((acc, r) => {
-                    acc[r.subject_type] = (acc[r.subject_type] || 0) + 1;
-                    return acc;
-                  }, {})
-                ).map(([type, count]) => (
-                  <li key={type}>{type}: {count}</li>
-                ))}
-              </ul>
-            </div>
+      <div className="two-column-layout">
+        <div className="left-column">
+          {user && (
+            <section className="card">
+              <h2>{UI_STRINGS.USER_INFO_TITLE}</h2>
+              <p><strong>{UI_STRINGS.USER_USERNAME}</strong> {user.data.username}</p>
+              <p><strong>{UI_STRINGS.USER_LEVEL}</strong> {user.data.level} / {user.data.max_level}</p>
+              <p className="source">{UI_STRINGS.SOURCE} {user.source === 'cache' ? UI_STRINGS.SOURCE_CACHE : UI_STRINGS.SOURCE_API}</p>
+            </section>
           )}
-          <p className="source">{UI_STRINGS.SOURCE} {reviews.source === 'cache' ? UI_STRINGS.SOURCE_CACHE : UI_STRINGS.SOURCE_API}</p>
-        </section>
-      )}
 
-      <section className="card">
+          {reviews && (
+            <section className="card">
+              <h2>{UI_STRINGS.REVIEWS_AVAILABLE_TITLE}</h2>
+              <p className="review-count">{reviews.count}</p>
+              <p>{UI_STRINGS.REVIEWS_ITEMS_READY}</p>
+              {reviews.count > 0 && (
+                <div className="review-breakdown">
+                  <h3>{UI_STRINGS.REVIEWS_BY_TYPE}</h3>
+                  <ul>
+                    {Object.entries(
+                      reviews.data.reduce((acc, r) => {
+                        acc[r.subject_type] = (acc[r.subject_type] || 0) + 1;
+                        return acc;
+                      }, {})
+                    ).map(([type, count]) => (
+                      <li key={type}>{type}: {count}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              <p className="source">{UI_STRINGS.SOURCE} {reviews.source === 'cache' ? UI_STRINGS.SOURCE_CACHE : UI_STRINGS.SOURCE_API}</p>
+            </section>
+          )}
+
+          <section className="card">
         <h2>{UI_STRINGS.BROWSE_SUBJECTS_TITLE}</h2>
         {user && (
           <LevelRangeSlider
@@ -561,36 +614,20 @@ function App() {
                   </div>
                 </div>
               )}
+            </div>
+          </div>
+        )}
+      </section>
+        </div>
 
-              <p className="filter-count">
-                {UI_STRINGS.FILTER_COUNT_SHOWING} {[...subjects.data].filter(subject => {
-                  // Filter by subject type
-                  if (!subjectTypes[subject.type]) return false;
-
-                  // Filter by SRS stage
-                  const srsKey = getSrsFilterKey(subject.srs_stage);
-                  if (!srsFilter[srsKey]) return false;
-
-                  // Filter by parts of speech
-                  if (subjectDetails && Object.keys(posFilter).length > 0) {
-                    const detail = subjectDetails.find(d => d.id === subject.id);
-                    if (detail) {
-                      if (!detail.parts_of_speech || detail.parts_of_speech.length === 0) {
-                        // Item has no parts of speech - check (empty) filter
-                        if (!posFilter['(empty)']) return false;
-                      } else {
-                        const hasMatchingPos = detail.parts_of_speech.some(pos => posFilter[pos]);
-                        if (!hasMatchingPos) return false;
-                      }
-                    }
-                  }
-                  return true;
-                }).length} {UI_STRINGS.FILTER_COUNT_OF} {subjects.count} {UI_STRINGS.FILTER_COUNT_SUBJECTS}
-              </p>
-
-              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
-                <button
-                  onClick={() => {
+        <div className="right-column">
+          {subjects && subjects.data.length > 0 && (
+            <>
+              <section className="card export-card">
+                <h3>Export</h3>
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  <button
+                    onClick={() => {
                     const filtered = [...subjects.data]
                       .filter(subject => {
                         // Filter by subject type
@@ -783,46 +820,152 @@ function App() {
                   {UI_STRINGS.EXPORT_LIST_BUTTON}
                 </button>
               </div>
-            </div>
+              </section>
 
-            <div className="subjects-grid">
-              {[...subjects.data]
-                .filter(subject => {
-                  // Filter by subject type
-                  if (!subjectTypes[subject.type]) return false;
-
-                  // Filter by SRS stage
-                  const srsKey = getSrsFilterKey(subject.srs_stage);
-                  if (!srsFilter[srsKey]) return false;
-
-                  // Filter by parts of speech
-                  if (subjectDetails && Object.keys(posFilter).length > 0) {
-                    const detail = subjectDetails.find(d => d.id === subject.id);
-                    if (detail) {
-                      if (!detail.parts_of_speech || detail.parts_of_speech.length === 0) {
-                        // Item has no parts of speech - check (empty) filter
-                        if (!posFilter['(empty)']) return false;
-                      } else {
-                        const hasMatchingPos = detail.parts_of_speech.some(pos => posFilter[pos]);
-                        if (!hasMatchingPos) return false;
-                      }
-                    }
-                  }
-                  return true;
-                })
-                .sort((a, b) => a.level - b.level)
-                .map(subject => (
-                  <div key={subject.id} className={`subject-card ${subject.type} ${getSrsClass(subject.srs_stage)}`}>
-                    <span className="subject-level">Lv {subject.level}</span>
-                    <span className="subject-char">{subject.characters}</span>
-                    <span className="subject-meaning">{subject.meanings[0]}</span>
-                    <span className="subject-srs">{getSrsLabel(subject.srs_stage)}</span>
+              {grammarLessons && grammarLessons.length > 0 && (
+                <section className="card grammar-lessons-card">
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                    <h3 style={{ margin: 0 }}>{UI_STRINGS.GRAMMAR_LESSONS_TITLE}</h3>
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        const allSelected = Object.values(grammarFilter).every(v => v);
+                        const updatedGrammarFilter = {};
+                        grammarLessons.forEach(lesson => {
+                          updatedGrammarFilter[lesson.id] = !allSelected;
+                        });
+                        setGrammarFilter(updatedGrammarFilter);
+                      }}
+                      type="button"
+                      style={{ fontSize: '0.85rem', padding: '0.25rem 0.5rem' }}
+                    >
+                      {Object.values(grammarFilter).every(v => v) ? UI_STRINGS.DESELECT_ALL_BUTTON : UI_STRINGS.SELECT_ALL_BUTTON}
+                    </button>
                   </div>
-                ))}
-            </div>
-          </div>
-        )}
-      </section>
+
+                  {/* Group lessons by level */}
+                  {Object.entries(
+                    grammarLessons.reduce((acc, lesson) => {
+                      const level = lesson.level || 'Unknown';
+                      if (!acc[level]) acc[level] = [];
+                      acc[level].push(lesson);
+                      return acc;
+                    }, {})
+                  )
+                  .sort(([levelA], [levelB]) => levelB.localeCompare(levelA)) // Sort N5 before N4
+                  .map(([level, lessons]) => (
+                    <div key={level} style={{ marginBottom: '1rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                        <h4 style={{ margin: 0, color: '#00aaff', fontSize: '1rem' }}>{level}</h4>
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            const levelLessonIds = lessons.map(l => l.id);
+                            const allLevelSelected = levelLessonIds.every(id => grammarFilter[id]);
+                            const updatedGrammarFilter = { ...grammarFilter };
+                            levelLessonIds.forEach(id => {
+                              updatedGrammarFilter[id] = !allLevelSelected;
+                            });
+                            setGrammarFilter(updatedGrammarFilter);
+                          }}
+                          type="button"
+                          style={{ fontSize: '0.75rem', padding: '0.2rem 0.4rem' }}
+                        >
+                          {lessons.every(l => grammarFilter[l.id]) ? UI_STRINGS.DESELECT_ALL_BUTTON : UI_STRINGS.SELECT_ALL_BUTTON}
+                        </button>
+                      </div>
+                      <div className="filter-checkboxes">
+                        {lessons
+                          .sort((a, b) => a.order_num - b.order_num)
+                          .map((lesson) => (
+                            <label key={lesson.id} className="filter-checkbox grammar" title={lesson.description}>
+                              <input
+                                type="checkbox"
+                                checked={grammarFilter[lesson.id] || false}
+                                onChange={() => handleGrammarFilterToggle(lesson.id)}
+                              />
+                              <span>{lesson.order_num}. {lesson.title}</span>
+                            </label>
+                          ))}
+                      </div>
+                    </div>
+                  ))}
+
+                  <button
+                    onClick={() => {
+                      // Get selected lessons
+                      const selectedLessons = grammarLessons.filter(lesson => grammarFilter[lesson.id]);
+                      console.log('Selected grammar lessons:', selectedLessons);
+                      // TODO: Implement grammar prompt generation
+                      alert(`Generate prompts for ${selectedLessons.length} selected lesson(s)`);
+                    }}
+                    disabled={!Object.values(grammarFilter).some(v => v)}
+                    style={{
+                      marginTop: '1rem',
+                      width: '100%',
+                      padding: '0.75rem',
+                      fontSize: '1rem',
+                      fontWeight: 'bold'
+                    }}
+                  >
+                    {UI_STRINGS.GENERATE_GRAMMAR_PROMPTS_BUTTON}
+                  </button>
+                </section>
+              )}
+
+              <section className="card subjects-grid-card">
+                {(() => {
+                  const filteredSubjects = [...subjects.data]
+                    .filter(subject => {
+                      // Filter by subject type
+                      if (!subjectTypes[subject.type]) return false;
+
+                      // Filter by SRS stage
+                      const srsKey = getSrsFilterKey(subject.srs_stage);
+                      if (!srsFilter[srsKey]) return false;
+
+                      // Filter by parts of speech
+                      if (subjectDetails && Object.keys(posFilter).length > 0) {
+                        const detail = subjectDetails.find(d => d.id === subject.id);
+                        if (detail) {
+                          if (!detail.parts_of_speech || detail.parts_of_speech.length === 0) {
+                            // Item has no parts of speech - check (empty) filter
+                            if (!posFilter['(empty)']) return false;
+                          } else {
+                            const hasMatchingPos = detail.parts_of_speech.some(pos => posFilter[pos]);
+                            if (!hasMatchingPos) return false;
+                          }
+                        }
+                      }
+                      return true;
+                    })
+                    .sort((a, b) => a.level - b.level);
+
+                  return (
+                    <>
+                      <h2>
+                        Subjects <span style={{ fontSize: '0.9rem', fontWeight: 'normal', color: '#888' }}>
+                          ({UI_STRINGS.FILTER_COUNT_SHOWING} {filteredSubjects.length} {UI_STRINGS.FILTER_COUNT_OF} {subjects.count})
+                        </span>
+                      </h2>
+                      <div className="subjects-grid">
+                        {filteredSubjects.map(subject => (
+                          <div key={subject.id} className={`subject-card ${subject.type} ${getSrsClass(subject.srs_stage)}`}>
+                            <span className="subject-level">Lv {subject.level}</span>
+                            <span className="subject-char">{subject.characters}</span>
+                            <span className="subject-meaning">{subject.meanings[0]}</span>
+                            <span className="subject-srs">{getSrsLabel(subject.srs_stage)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  );
+                })()}
+              </section>
+            </>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
